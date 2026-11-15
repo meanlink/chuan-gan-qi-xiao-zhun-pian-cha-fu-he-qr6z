@@ -32,3 +32,7 @@ target/
 *.o
 *.obj
 .DS_Store
+
+# 本地默认 SQLite 库（未设置 DATABASE_URL 时生成）
+*.db
+local.db

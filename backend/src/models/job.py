@@ -14,3 +14,4 @@ class Job(Base):
     created_by: Mapped[int] = mapped_column(ForeignKey('users.id'))
     created_at: Mapped[float] = mapped_column(Double)
     finished_at: Mapped[float | None] = mapped_column(Double, nullable=True)
+    lab_id: Mapped[int | None] = mapped_column(ForeignKey('labs.id'), nullable=True)

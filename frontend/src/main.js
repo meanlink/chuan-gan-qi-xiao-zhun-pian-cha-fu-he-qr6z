@@ -9,6 +9,7 @@ import {dataPage,bindData} from './pages/datasets.js';
 import {workbench,bindWorkbench} from './pages/workbench.js';
 import {results,bindResults} from './pages/results.js';
 import {reportPage,bindReports} from './pages/reports.js';
+import {platformPage,bindPlatform} from './pages/platform.js';
 import {esc} from './utils/dom.js';
 async function render(){
  const app=document.querySelector('#app');
@@ -16,10 +17,17 @@ async function render(){
    if(!workspace.meta){workspace.meta=await api('/meta');document.title=workspace.meta.name;document.documentElement.style.setProperty('--accent',workspace.meta.accent||'oklch(48% 0.13 145)');document.body.dataset.style=workspace.meta.style||'ledger';}
    const {page,id}=route();
    if(!session.token||page==='login'){login();return;}
-   const pages={overview,datasets:dataPage,workbench,results:()=>results(id),reports:reportPage};
-   const content=await (pages[page]||overview)();app.innerHTML=shell(page,content);
+   // 刷新归属信息，保证升级前登录的会话也能拿到 lab_name / 角色。
+   if(!session.user.lab_name&&session.user.role!=='platform_admin'){
+     try{const me=await api('/auth/me');session.user={...session.user,...me};localStorage.setItem('user',JSON.stringify(session.user));}catch{/* 401 时由 api 统一跳登录 */}
+   }
+   const isPlatform=session.user.role==='platform_admin';
+   if(isPlatform&&page!=='platform'){location.hash='#/platform';return;}
+   if(!isPlatform&&page==='platform'){location.hash='#/overview';return;}
+   const pages={overview,datasets:dataPage,workbench,results:()=>results(id),reports:reportPage,platform:platformPage};
+   const content=await (pages[page]||(isPlatform?platformPage:overview))();app.innerHTML=shell(page,content);
    document.querySelector('#logout').onclick=()=>{session.clear();location.hash='#/login';render();};
-   if(page==='datasets')bindData(render);if(page==='workbench')bindWorkbench();if(page==='results')bindResults(render);if(page==='reports')bindReports(render);
+   if(page==='datasets')bindData(render);if(page==='workbench')bindWorkbench();if(page==='results')bindResults(render);if(page==='reports')bindReports(render);if(page==='platform')bindPlatform(render);
  }catch(e){app.innerHTML='<div class="fatal"><h1>暂时无法打开工作室</h1><p>'+esc(e.message)+'</p><button onclick="location.reload()">重新连接</button></div>';}
 }
 addEventListener('hashchange',render);render();
